@@ -51,6 +51,62 @@ class SudokuSolver {
     return true;
   }
 
+  check(puzzle, coordinate, value) {
+    const validationError = this.validate(puzzle);
+    if (validationError) {
+      return { error: validationError };
+    }
+
+    const row = coordinate.match(/[a-i]/i);
+    const col = coordinate.match(/[1-9]/);
+
+    if (coordinate.length !== 2 || !row || !col) {
+      return { error: "Invalid coordinate" };
+    }
+
+    if (!/^[1-9]$/.test(value)) {
+      return { error: "Invalid value" };
+    }
+
+    const rowIndex = coordinate.toUpperCase().charCodeAt(0) - 65;
+    const colIndex = parseInt(col[0]) - 1;
+
+    this.grid = [];
+    for (let i = 0; i < 81; i += 9) {
+      this.grid.push(puzzle.slice(i, i + 9).split(""));
+    }
+
+    if (this.grid[rowIndex][colIndex] === value) {
+      return { valid: true };
+    }
+
+    const originalValue = this.grid[rowIndex][colIndex];
+    if (originalValue !== ".") {
+      this.grid[rowIndex][colIndex] = ".";
+    }
+
+    const conflicts = [];
+    if (!this.checkRowPlacement(rowIndex, value)) {
+      conflicts.push("row");
+    }
+    if (!this.checkColPlacement(colIndex, value)) {
+      conflicts.push("column");
+    }
+    if (!this.checkRegionPlacement(rowIndex, colIndex, value)) {
+      conflicts.push("region");
+    }
+
+    if (originalValue !== ".") {
+      this.grid[rowIndex][colIndex] = originalValue;
+    }
+
+    if (conflicts.length > 0) {
+      return { valid: false, conflict: conflicts };
+    }
+
+    return { valid: true };
+  }
+
   solve(puzzleString) {
     const validationError = this.validate(puzzleString);
     if (validationError) {
