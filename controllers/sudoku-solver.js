@@ -1,49 +1,60 @@
 class SudokuSolver {
-  constructor() {
-    this.grid = [];
+  constructor(puzzleString) {
+    this.puzzleString = puzzleString;
+    this.grid = this.populateGrid(puzzleString);
   }
 
-  validate(puzzleString) {
-    if (!puzzleString) {
+  populateGrid(puzzleString) {
+    const grid = [];
+    if (puzzleString) {
+      for (let i = 0; i < 81; i += 9) {
+        grid.push(puzzleString.slice(i, i + 9).split(""));
+      }
+    }
+    return grid;
+  }
+
+  validate() {
+    if (!this.puzzleString) {
       return "Required field missing";
     }
 
-    if (!/^([0-9]|\.)+$/.test(puzzleString)) {
+    if (!/^([0-9]|\.)+$/.test(this.puzzleString)) {
       return "Invalid characters in puzzle";
     }
 
-    if (puzzleString.length !== 81) {
+    if (this.puzzleString.length !== 81) {
       return "Expected puzzle to be 81 characters long";
     }
 
     return null;
   }
 
-  checkRowPlacement(row, value) {
+  checkRowPlacement(grid, row, value) {
     for (let j = 0; j < 9; j++) {
-      if (this.grid[row][j] == value) {
+      if (grid[row][j] == value) {
         return false;
       }
     }
     return true;
   }
 
-  checkColPlacement(column, value) {
+  checkColPlacement(grid, column, value) {
     for (let i = 0; i < 9; i++) {
-      if (this.grid[i][column] == value) {
+      if (grid[i][column] == value) {
         return false;
       }
     }
     return true;
   }
 
-  checkRegionPlacement(row, column, value) {
+  checkRegionPlacement(grid, row, column, value) {
     const rowIndex = row - (row % 3);
     const columnIndex = column - (column % 3);
 
     for (let i = rowIndex; i < rowIndex + 3; i++) {
       for (let j = columnIndex; j < columnIndex + 3; j++) {
-        if (this.grid[i][j] == value) {
+        if (grid[i][j] == value) {
           return false;
         }
       }
@@ -51,8 +62,8 @@ class SudokuSolver {
     return true;
   }
 
-  check(puzzle, coordinate, value) {
-    const validationError = this.validate(puzzle);
+  check(coordinate, value) {
+    const validationError = this.validate();
     if (validationError) {
       return { error: validationError };
     }
@@ -71,33 +82,25 @@ class SudokuSolver {
     const rowIndex = coordinate.toUpperCase().charCodeAt(0) - 65;
     const colIndex = parseInt(col[0]) - 1;
 
-    this.grid = [];
-    for (let i = 0; i < 81; i += 9) {
-      this.grid.push(puzzle.slice(i, i + 9).split(""));
-    }
-
     if (this.grid[rowIndex][colIndex] === value) {
       return { valid: true };
     }
 
-    const originalValue = this.grid[rowIndex][colIndex];
+    const tempGrid = this.grid.map((row) => [...row]);
+    const originalValue = tempGrid[rowIndex][colIndex];
     if (originalValue !== ".") {
-      this.grid[rowIndex][colIndex] = ".";
+      tempGrid[rowIndex][colIndex] = ".";
     }
 
     const conflicts = [];
-    if (!this.checkRowPlacement(rowIndex, value)) {
+    if (!this.checkRowPlacement(tempGrid, rowIndex, value)) {
       conflicts.push("row");
     }
-    if (!this.checkColPlacement(colIndex, value)) {
+    if (!this.checkColPlacement(tempGrid, colIndex, value)) {
       conflicts.push("column");
     }
-    if (!this.checkRegionPlacement(rowIndex, colIndex, value)) {
+    if (!this.checkRegionPlacement(tempGrid, rowIndex, colIndex, value)) {
       conflicts.push("region");
-    }
-
-    if (originalValue !== ".") {
-      this.grid[rowIndex][colIndex] = originalValue;
     }
 
     if (conflicts.length > 0) {
@@ -107,15 +110,10 @@ class SudokuSolver {
     return { valid: true };
   }
 
-  solve(puzzleString) {
-    const validationError = this.validate(puzzleString);
+  solve() {
+    const validationError = this.validate();
     if (validationError) {
       return false;
-    }
-
-    this.grid = [];
-    for (let i = 0; i < 81; i += 9) {
-      this.grid.push(puzzleString.slice(i, i + 9).split(""));
     }
 
     const solveSudoku = () => {
@@ -143,9 +141,9 @@ class SudokuSolver {
       for (let num = 1; num <= 9; num++) {
         const value = String(num);
         const isSafeToPlace =
-          this.checkRowPlacement(row, value) &&
-          this.checkColPlacement(col, value) &&
-          this.checkRegionPlacement(row, col, value);
+          this.checkRowPlacement(this.grid, row, value) &&
+          this.checkColPlacement(this.grid, col, value) &&
+          this.checkRegionPlacement(this.grid, row, col, value);
 
         if (isSafeToPlace) {
           this.grid[row][col] = value;
